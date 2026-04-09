@@ -1,4 +1,4 @@
-const API_URL = 'https://script.google.com/macros/s/AKfycbw2Uf13e0f7R3v33t15sck1jQaAX3i0VQGpBQl0L_xNjQgdnu9SpO4MuMny69jHX9VMQw/exec';
+const API_URL = 'https://script.google.com/macros/s/AKfycby7IWyWKFMlsQrS-vctH-UDCoAfVRce4wCTOhihixSBpqnzxZpfw-USJ90G4-Plk241uQ/exec';
 
 export const api = {
   // Buscar dados (questões e equipes) com filtros de unidade e série

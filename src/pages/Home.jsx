@@ -7,7 +7,7 @@ export default function Home() {
   const [unidade, setUnidade] = useState('');
   const [serie, setSerie] = useState('');
   const [accessKey, setAccessKey] = useState('');
-  
+
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [attempts, setAttempts] = useState(0);
@@ -16,22 +16,22 @@ export default function Home() {
 
   const handleStart = async (e) => {
     e.preventDefault();
-    
+
     if (isLocked) return;
 
     if (unidade && serie && accessKey.trim()) {
       setIsLoading(true);
       setError('');
-      
+
       try {
         // Busca dados filtrados por unidade e série
         const data = await api.getData(unidade, serie);
-        
+
         console.log('Dados recebidos no Home:', data); // Debug log
 
         // Verifica se a chave existe na lista de equipes
         if (!data || !data.equipes) {
-           throw new Error('Formato de dados inválido recebido da API.');
+          throw new Error('Formato de dados inválido recebido da API.');
         }
 
         // Log das chaves disponíveis para debug
@@ -43,32 +43,32 @@ export default function Home() {
         console.log('Chave digitada:', accessKey);
 
         const foundTeam = data.equipes.find(t => {
-           // Normalizar chave de entrada
-           const inputKey = String(accessKey).trim();
-           
-           // Tentar encontrar a chave em várias propriedades possíveis
-           const teamKey = t.chave || t.Chave || t.CHAVE || t.codigo || t.Codigo || t.id || t.ID || '';
-           
-           // Comparação flexível
-           return String(teamKey).trim() === inputKey;
+          // Normalizar chave de entrada
+          const inputKey = String(accessKey).trim();
+
+          // Tentar encontrar a chave em várias propriedades possíveis
+          const teamKey = t.chave || t.Chave || t.CHAVE || t.codigo || t.Codigo || t.id || t.ID || '';
+
+          // Comparação flexível
+          return String(teamKey).trim() === inputKey;
         });
-        
+
         if (foundTeam) {
           // Sucesso
           const teamName = foundTeam.equipe || foundTeam.Equipe || foundTeam.Nome || foundTeam.name || '';
-          
+
           if (!teamName) {
-             console.error('Equipe encontrada mas sem nome:', foundTeam);
-             setError('Erro: Equipe encontrada mas nome não identificado.');
-             setIsLoading(false);
-             return;
+            console.error('Equipe encontrada mas sem nome:', foundTeam);
+            setError('Erro: Equipe encontrada mas nome não identificado.');
+            setIsLoading(false);
+            return;
           }
 
           localStorage.setItem('unidade', unidade);
           localStorage.setItem('serie', serie);
           localStorage.setItem('teamName', teamName);
           localStorage.setItem('accessKey', accessKey); // Salvar para usar no POST
-          
+
           navigate('/dashboard');
         } else {
           // Falha
@@ -89,7 +89,7 @@ export default function Home() {
   const handleLoginError = () => {
     const newAttempts = attempts + 1;
     setAttempts(newAttempts);
-    
+
     if (newAttempts >= 3) {
       setIsLocked(true);
       setError('Muitas tentativas inválidas. Aguarde 5 segundos.');
@@ -106,7 +106,7 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-white flex items-center justify-center p-4">
       <div className="bg-primary p-8 rounded-3xl shadow-2xl max-w-md w-full text-center relative overflow-hidden">
-        
+
         <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-bl-full pointer-events-none"></div>
         <div className="absolute bottom-0 left-0 w-32 h-32 bg-white/10 rounded-tr-full pointer-events-none"></div>
 
@@ -115,14 +115,14 @@ export default function Home() {
             <Trophy size={48} className="text-accent-orange" />
           </div>
         </div>
-        
+
         <h1 className="text-4xl font-black text-white mb-2 uppercase tracking-wider relative z-10">
-          Olimpíada Escolar
+          Olivinci
         </h1>
         <p className="text-white/80 mb-8 font-medium relative z-10">Área de Acesso das Equipes</p>
-        
+
         <form onSubmit={handleStart} className="space-y-4 relative z-10">
-          
+
           {/* Seletor de Unidade */}
           <div className="relative group">
             <select
@@ -171,8 +171,8 @@ export default function Home() {
               }}
               placeholder="Chave de Acesso"
               className={`w-full bg-white text-primary placeholder-primary/50 pl-12 pr-6 py-4 rounded-xl focus:outline-none transition-all duration-300 text-lg font-bold text-center border-2
-                ${error 
-                  ? 'border-accent-red focus:border-accent-red' 
+                ${error
+                  ? 'border-accent-red focus:border-accent-red'
                   : 'border-transparent focus:border-accent-orange'}
                 ${isLocked ? 'opacity-50 cursor-not-allowed' : ''}
               `}
@@ -187,7 +187,7 @@ export default function Home() {
               <span>{error}</span>
             </div>
           )}
-          
+
           <button
             type="submit"
             disabled={isLoading || isLocked}
@@ -197,7 +197,7 @@ export default function Home() {
           >
             {isLoading ? <Loader2 className="animate-spin mr-2" /> : 'Acessar Painel'}
           </button>
-          
+
           <div className="pt-4 border-t border-white/20">
             <button
               type="button"
@@ -211,12 +211,12 @@ export default function Home() {
         </form>
 
         <div className="mt-8 relative z-10 text-center">
-            <button 
-                onClick={() => navigate('/admin')} 
-                className="text-white/30 text-xs hover:text-white/60 transition-colors uppercase tracking-widest font-bold"
-            >
-                Acesso Administrativo
-            </button>
+          <button
+            onClick={() => navigate('/admin')}
+            className="text-white/30 text-xs hover:text-white/60 transition-colors uppercase tracking-widest font-bold"
+          >
+            Acesso Administrativo
+          </button>
         </div>
       </div>
     </div>

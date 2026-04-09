@@ -3,7 +3,7 @@ import { ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import Leaderboard from './Leaderboard';
 
-export default function Header({ teamName, points, completedCount, showBack = false }) {
+export default function Header({ teamName, points, completedCount, showBack = false, timeLeft, formatTime, isTimeUp }) {
   const navigate = useNavigate();
   const [pointsClass, setPointsClass] = useState('');
   const prevPointsRef = useRef(points);
@@ -70,6 +70,18 @@ export default function Header({ teamName, points, completedCount, showBack = fa
                 {points}
               </span>
             </div>
+
+            {/* Cronômetro Regressivo */}
+            <div className={`
+              px-4 py-2 rounded-xl flex flex-col items-center justify-center min-w-[120px] border-2 transition-all duration-300
+              ${isTimeUp ? 'bg-accent-red border-white animate-pulse' : 'bg-white/10 border-white/20'}
+            `}>
+              <span className="text-[10px] font-bold text-white/70 uppercase tracking-widest leading-none mb-1">Tempo</span>
+              <span className="text-xl font-black text-white font-mono tracking-tighter tabular-nums leading-none">
+                {formatTime ? formatTime(timeLeft) : "--:--:--"}
+              </span>
+            </div>
+
             <span className="text-xs text-white/70 font-medium whitespace-nowrap hidden sm:inline">
               ({completedCount}/20 concluídos)
             </span>

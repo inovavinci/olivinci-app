@@ -109,5 +109,17 @@ export const api = {
     };
 
     return api.submitChallenge(payload);
+  },
+
+  // Salvar tempo restante
+  saveTime: async (unidade, serie, equipe, tempo) => {
+    const payload = {
+      action: 'SAVE_TIME',
+      unidade,
+      serie,
+      equipe,
+      tempo
+    };
+    return api.submitChallenge(payload);
   }
 };

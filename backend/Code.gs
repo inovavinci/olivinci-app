@@ -128,14 +128,22 @@ function doGet(e) {
     }
 
     // Obter timestamp do último reset global/parcial
-    var scriptProperties = PropertiesService.getScriptProperties();
     var lastReset = scriptProperties.getProperty('LAST_RESET_TIMESTAMP') || 0;
-
+    
+    // 3. Obter Configurações (Timer)
+    var timerDuration = "00:00:00";
+    var sheetConfig = ss.getSheetByName("CONFIG");
+    if (sheetConfig) {
+      var val = sheetConfig.getRange("B1").getDisplayValue();
+      if (val) timerDuration = val;
+    }
+    
     return responseJSON({
       status: "success",
       questoes: questoes,
       equipes: equipes,
-      lastReset: parseInt(lastReset)
+      lastReset: parseInt(lastReset),
+      timerDuration: timerDuration
     });
 
   } catch (error) {
@@ -161,6 +169,11 @@ function doPost(e) {
     // VERIFICAR SE É UMA AÇÃO DE RESET
     if (data.action === 'RESET') {
       return handleReset(data);
+    }
+    
+    // VERIFICAR SE É UMA AÇÃO DE SALVAR TEMPO
+    if (data.action === 'SAVE_TIME') {
+      return handleSaveTime(data);
     }
 
     var unidade = data.unidade;
@@ -315,6 +328,41 @@ function logAction(ss, message) {
     logSheet.appendRow(["Timestamp", "Mensagem"]);
   }
   logSheet.appendRow([new Date(), message]);
+}
+
+// Função para salvar tempo restante (Coluna AB = 28)
+function handleSaveTime(data) {
+  var unidade = data.unidade;
+  var serie = data.serie;
+  var equipeNome = data.equipe;
+  var tempoRestante = data.tempo; // HH:MM:SS
+
+  if (!unidade || !serie || !equipeNome || !tempoRestante) {
+    throw new Error("Dados incompletos para salvar tempo.");
+  }
+
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheetName = unidade + serie;
+  var sheet = ss.getSheetByName(sheetName);
+  
+  if (!sheet) throw new Error("Aba não encontrada: " + sheetName);
+
+  var dataRange = sheet.getDataRange().getValues();
+  var rowIndex = -1;
+
+  for (var r = 1; r < dataRange.length; r++) {
+    if (String(dataRange[r][0]).trim().toLowerCase() === String(equipeNome).trim().toLowerCase()) {
+      rowIndex = r + 1;
+      break;
+    }
+  }
+
+  if (rowIndex === -1) throw new Error("Equipe não encontrada.");
+
+  // Coluna AB é a 28
+  sheet.getRange(rowIndex, 28).setValue(tempoRestante);
+
+  return responseJSON({ status: "success", message: "Tempo salvo com sucesso." });
 }
 
 // Helper para retornar JSON corretamente

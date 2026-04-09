@@ -6,7 +6,7 @@ import Header from '../components/Header';
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  const { teamName, attempts, totalPoints, completedCount, questoes } = useGameState();
+  const { teamName, attempts, totalPoints, completedCount, questoes, timeLeft, formatTime, isTimeUp } = useGameState();
 
   useEffect(() => {
     if (!localStorage.getItem('teamName')) {
@@ -61,7 +61,14 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-white text-primary flex flex-col">
-      <Header teamName={teamName} points={totalPoints} completedCount={completedCount} />
+      <Header 
+        teamName={teamName} 
+        points={totalPoints} 
+        completedCount={completedCount} 
+        timeLeft={timeLeft}
+        formatTime={formatTime}
+        isTimeUp={isTimeUp}
+      />
 
       <main className="container mx-auto px-4 py-8 flex-1">
         <h2 className="text-3xl font-black text-primary mb-8 text-center uppercase tracking-widest">
@@ -123,7 +130,7 @@ export default function Dashboard() {
               </div>
             );
 
-            return isCompleted ? (
+            return (isCompleted || isTimeUp) ? (
               <div key={id} className="cursor-default">{CardContent}</div>
             ) : (
               <Link key={id} to={`/desafio/${id}`}>

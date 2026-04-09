@@ -11,6 +11,12 @@ export function useGameState() {
   const [attempts, setAttempts] = useState({}); 
   const [totalPoints, setTotalPoints] = useState(0);
   
+  // Timer States
+  const [timeLeft, setTimeLeft] = useState(null);
+  const [timerDuration, setTimerDuration] = useState(null);
+  const [isTimeUp, setIsTimeUp] = useState(false);
+  const [isTimerPaused, setIsTimerPaused] = useState(false);
+  
   const audioRef = useRef(new Audio('https://actions.google.com/sounds/v1/alarms/beep_short.ogg'));
   const prevPointsRef = useRef(0);
 
@@ -42,6 +48,12 @@ export function useGameState() {
           setTotalPoints(parsed.totalPoints || 0);
           prevPointsRef.current = parsed.totalPoints || 0;
         } catch(e) { console.error('Cache gameState error', e); }
+      }
+      
+      // Carregar cache do Timer
+      const cachedTimeLeft = localStorage.getItem(`timer_${storedTeam}`);
+      if (cachedTimeLeft) {
+        setTimeLeft(parseInt(cachedTimeLeft));
       }
     }
   }, []);
@@ -75,10 +87,22 @@ export function useGameState() {
           }
         }
 
-        // Atualizar questões se vierem (Gabarito dinâmico)
         if (data.questoes && data.questoes.length > 0) {
           setQuestoes(data.questoes);
           localStorage.setItem(`questoes_${unidade}_${serie}`, JSON.stringify(data.questoes));
+        }
+
+        // Processar Timer Duration (HH:MM:SS para segundos)
+        if (data.timerDuration && !timerDuration) {
+          const [h, m, s] = data.timerDuration.split(':').map(Number);
+          const totalSeconds = (h * 3600) + (m * 60) + s;
+          setTimerDuration(totalSeconds);
+          
+          // Se não tiver timeLeft no cache, inicializa com o total
+          if (timeLeft === null) {
+            setTimeLeft(totalSeconds);
+            localStorage.setItem(`timer_${teamName}`, String(totalSeconds));
+          }
         }
 
         // Encontrar a equipe do usuário na lista retornada
@@ -167,7 +191,46 @@ export function useGameState() {
     fetchData(); // Primeira chamada
     const interval = setInterval(fetchData, 10000);
     return () => clearInterval(interval);
-  }, [teamName, unidade, serie]); // Dependências do efeito
+  }, [teamName, unidade, serie, timerDuration, timeLeft]); // Dependências do efeito
+
+  // Efeito do Cronômetro
+  useEffect(() => {
+    if (timeLeft === null || isTimeUp || isTimerPaused) return;
+
+    if (timeLeft <= 0) {
+      setIsTimeUp(true);
+      return;
+    }
+
+    const timer = setInterval(() => {
+      setTimeLeft(prev => {
+        const next = prev - 1;
+        localStorage.setItem(`timer_${teamName}`, String(next));
+        return next;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [timeLeft, isTimeUp, isTimerPaused, teamName]);
+
+  // Efeito para Salvar Tempo ao Finalizar (20 desafios)
+  useEffect(() => {
+    const completedCount = Object.keys(attempts).length;
+    if (completedCount === 20 && !isTimerPaused && timeLeft > 0) {
+      console.log('Todos desafios concluídos! Travando timer e salvando tempo...');
+      setIsTimerPaused(true);
+      
+      // Formatar segundos restantes de volta para HH:MM:SS
+      const h = Math.floor(timeLeft / 3600);
+      const m = Math.floor((timeLeft % 3600) / 60);
+      const s = timeLeft % 60;
+      const formattedTime = [h, m, s].map(v => String(v).padStart(2, '0')).join(':');
+      
+      api.saveTime(unidade, serie, teamName, formattedTime)
+        .then(() => console.log('Tempo salvo com sucesso na planilha'))
+        .catch(err => console.error('Erro ao salvar tempo:', err));
+    }
+  }, [attempts, isTimerPaused, timeLeft, unidade, serie, teamName]);
 
   // Função para enviar resposta
   const submitAnswer = async (challengeId, userAnswer) => {
@@ -241,6 +304,15 @@ export function useGameState() {
     submitAnswer,
     totalPoints,
     completedCount,
+    timeLeft,
+    isTimeUp,
+    formatTime: (seconds) => {
+      if (seconds === null) return "--:--:--";
+      const h = Math.floor(seconds / 3600);
+      const m = Math.floor((seconds % 3600) / 60);
+      const s = seconds % 60;
+      return [h, m, s].map(v => String(v).padStart(2, '0')).join(':');
+    },
     setUnidade,
     setSerie,
     setTeamName,

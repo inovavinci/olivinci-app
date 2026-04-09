@@ -7,7 +7,7 @@ import Header from '../components/Header';
 export default function Challenge() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { teamName, attempts, submitAnswer, totalPoints, completedCount, questoes } = useGameState();
+  const { teamName, attempts, submitAnswer, totalPoints, completedCount, questoes, timeLeft, formatTime, isTimeUp } = useGameState();
   const [answer, setAnswer] = useState('');
   const [error, setError] = useState('');
 
@@ -20,12 +20,22 @@ export default function Challenge() {
   const attempt = attempts[challengeId];
 
   useEffect(() => {
+    if (!localStorage.getItem('teamName')) {
+      navigate('/');
+    }
+
     // Se não tiver questões carregadas ainda, pode ser loading ou erro
     // Mas se tiver e não achar o desafio, volta
     if (questoes.length > 0 && !challenge) {
       navigate('/dashboard');
     }
-  }, [challenge, navigate, questoes]);
+
+    // REDIRECIONAR SE O TEMPO ACABAR
+    if (isTimeUp) {
+      console.warn('O tempo acabou! Redirecionando para o painel...');
+      navigate('/dashboard');
+    }
+  }, [challenge, navigate, questoes, isTimeUp]);
 
   if (!challenge) return (
     <div className="min-h-screen bg-white flex items-center justify-center">
@@ -73,7 +83,15 @@ export default function Challenge() {
 
   return (
     <div className="min-h-screen bg-white text-primary flex flex-col">
-      <Header teamName={teamName} points={totalPoints} completedCount={completedCount} showBack={true} />
+      <Header 
+        teamName={teamName} 
+        points={totalPoints} 
+        completedCount={completedCount} 
+        showBack={true} 
+        timeLeft={timeLeft}
+        formatTime={formatTime}
+        isTimeUp={isTimeUp}
+      />
 
       <main className="flex-1 container mx-auto px-4 py-8 flex flex-col items-center justify-center">
         <div className="bg-white p-8 md:p-12 rounded-3xl shadow-xl border border-primary/10 max-w-2xl w-full text-center relative overflow-hidden">

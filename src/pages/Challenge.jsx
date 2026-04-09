@@ -123,7 +123,10 @@ export default function Challenge() {
 
                 {/* Seletor de Múltipla Escolha - Formato de Linhas */}
                 <div className="flex flex-col gap-3 mb-2 text-left">
-                  {['A', 'B', 'C', 'D'].map((option) => {
+                  {['A', 'B', 'C', 'D', 'E'].filter(option => {
+                    if (option === 'E') return !!challenge.itemE;
+                    return true;
+                  }).map((option) => {
                     const itemKey = `item${option}`;
                     const itemText = challenge[itemKey];
 

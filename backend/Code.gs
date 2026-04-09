@@ -41,6 +41,7 @@ function doGet(e) {
         else if (h.indexOf('item b') > -1 || h === 'b') gabMap.itemB = idx;
         else if (h.indexOf('item c') > -1 || h === 'c') gabMap.itemC = idx;
         else if (h.indexOf('item d') > -1 || h === 'd') gabMap.itemD = idx;
+        else if (h.indexOf('item e') > -1 || h === 'e') gabMap.itemE = idx;
       });
 
       // Fallback para índices padrão se não encontrar headers (A=0, B=1, C=2...)
@@ -56,6 +57,7 @@ function doGet(e) {
       if (gabMap.itemB === undefined) gabMap.itemB = 6;
       if (gabMap.itemC === undefined) gabMap.itemC = 7;
       if (gabMap.itemD === undefined) gabMap.itemD = 8;
+      if (gabMap.itemE === undefined) gabMap.itemE = 9; // Column J
 
       for (var i = 1; i < dataGab.length; i++) {
         var row = dataGab[i];
@@ -71,6 +73,7 @@ function doGet(e) {
         q.itemB = row[gabMap.itemB];
         q.itemC = row[gabMap.itemC];
         q.itemD = row[gabMap.itemD];
+        q.itemE = row[gabMap.itemE];
         
         // Debug: Logar se resposta estiver vazia
         if (q.resposta === undefined || q.resposta === "") {

@@ -12,11 +12,11 @@ export default function Challenge() {
   const [error, setError] = useState('');
 
   const challengeId = Number(id);
-  
+
   // Buscar questão dinâmica do estado
   // Supondo que questoes é array de objetos { numero, componente, enunciado, imagem, resposta }
   const challenge = questoes.find(q => q.numero == challengeId || q.id == challengeId) || questoes[challengeId - 1];
-  
+
   const attempt = attempts[challengeId];
 
   useEffect(() => {
@@ -44,7 +44,7 @@ export default function Challenge() {
 
   const getStatusDisplay = () => {
     if (!attempt) return null;
-    
+
     switch (attempt.status) {
       case 'correct':
         return (
@@ -77,7 +77,7 @@ export default function Challenge() {
 
       <main className="flex-1 container mx-auto px-4 py-8 flex flex-col items-center justify-center">
         <div className="bg-white p-8 md:p-12 rounded-3xl shadow-xl border border-primary/10 max-w-2xl w-full text-center relative overflow-hidden">
-          
+
           <div className="absolute -top-20 -right-20 w-64 h-64 bg-accent-orange/10 rounded-full blur-3xl pointer-events-none"></div>
           <div className="absolute -bottom-20 -left-20 w-64 h-64 bg-accent-blue/10 rounded-full blur-3xl pointer-events-none"></div>
 
@@ -92,7 +92,7 @@ export default function Challenge() {
                 </span>
               )}
             </div>
-            
+
             {!attempt && (
               <div className="flex justify-center space-x-4 mb-8 text-xs font-bold uppercase tracking-wider">
                 <span className="bg-accent-green/10 text-accent-green px-3 py-1 rounded-full border border-accent-green/30">Acerto: +1</span>
@@ -100,34 +100,33 @@ export default function Challenge() {
               </div>
             )}
 
-            {/* Imagem do desafio */}
             {challenge.imagem && (
-              <div className="mb-6 rounded-xl overflow-hidden border-2 border-gray-100">
+              <div className="mb-6 rounded-xl overflow-hidden border-2 border-gray-100 bg-gray-50 flex items-center justify-center p-2">
                 <img 
                   src={challenge.imagem} 
                   alt="Imagem do desafio" 
-                  className="w-full h-auto object-cover max-h-64"
-                  onError={(e) => e.target.style.display = 'none'} 
+                  className="max-w-full max-h-[400px] object-contain rounded-lg"
+                  onError={(e) => e.target.parentElement.style.display = 'none'} 
                 />
               </div>
             )}
 
             {/* CONFIGURAÇÃO DO ENUNCIADO: Altere as classes abaixo para mudar o estilo do texto da pergunta */}
-            <h2 className="text-lg md:text-xl font-semibold mb-8 text-primary text-left leading-tight whitespace-pre-line">
+            <h2 className="text-lg md:text-lg font-light mb-8 text-primary text-left leading-tight whitespace-pre-line">
               {challenge.enunciado || challenge.question || "Carregando pergunta..."}
             </h2>
-            
+
             {getStatusDisplay()}
 
             {!attempt ? (
               <form onSubmit={handleSubmit} className="space-y-6 animate-fade-in-up">
-                
+
                 {/* Seletor de Múltipla Escolha - Formato de Linhas */}
                 <div className="flex flex-col gap-3 mb-2 text-left">
                   {['A', 'B', 'C', 'D'].map((option) => {
                     const itemKey = `item${option}`;
                     const itemText = challenge[itemKey];
-                    
+
                     return (
                       <button
                         key={option}
@@ -138,8 +137,8 @@ export default function Challenge() {
                         }}
                         className={`
                           flex items-center p-4 rounded-xl transition-all duration-200 border-2 shadow-sm
-                          ${answer === option 
-                            ? 'bg-accent-blue text-white border-accent-blue shadow-md transform scale-[1.02] z-10' 
+                          ${answer === option
+                            ? 'bg-accent-blue text-white border-accent-blue shadow-md transform scale-[1.02] z-10'
                             : 'bg-gray-50 text-primary border-gray-200 hover:border-accent-blue/50 hover:bg-blue-50'
                           }
                         `}
@@ -152,7 +151,7 @@ export default function Challenge() {
                         `}>
                           {option}
                         </span>
-                        <span className="font-semibold text-base leading-snug">
+                        <span className="font-light text-base text-left leading-snug">
                           {itemText || `Alternativa ${option}`}
                         </span>
                       </button>
@@ -161,15 +160,15 @@ export default function Challenge() {
                 </div>
 
                 {error && <p className="text-accent-red text-sm font-bold animate-pulse">{error}</p>}
-                
+
                 <div className="pt-4">
                   <button
                     type="submit"
                     disabled={!answer}
                     className={`
                       w-full font-black py-4 px-8 rounded-xl shadow-lg transition-all duration-200 uppercase tracking-widest
-                      ${!answer 
-                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed opacity-70' 
+                      ${!answer
+                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed opacity-70'
                         : 'bg-accent-orange hover:bg-yellow-400 text-primary-dark transform hover:scale-105'
                       }
                     `}

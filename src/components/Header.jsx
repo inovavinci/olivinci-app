@@ -71,7 +71,7 @@ export default function Header({ teamName, points, completedCount, showBack = fa
               </span>
             </div>
             <span className="text-xs text-white/70 font-medium whitespace-nowrap hidden sm:inline">
-              ({completedCount}/24 concluídos)
+              ({completedCount}/20 concluídos)
             </span>
           </div>
         </div>

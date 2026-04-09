@@ -60,13 +60,18 @@ export function useGameState() {
           const localLastReset = parseInt(localStorage.getItem('lastResetTimestamp') || '0');
           // Se o timestamp do servidor for maior que o local, houve um reset
           if (data.lastReset > localLastReset) {
-             console.warn('Reset remoto detectado. Limpando dados locais...');
-             localStorage.clear();
+             console.warn('Reset remoto detectado. Sincronizando progresso...');
+             
+             // Limpeza seletiva: remove apenas o estado do jogo, mantém login (unidade, serie, teamName)
+             localStorage.removeItem(`gameState_${teamName}`);
              localStorage.setItem('lastResetTimestamp', String(data.lastReset));
-             alert('O sistema foi reiniciado pelo administrador. Todos os dados locais foram limpos.');
-             window.location.hash = '#/';
-             window.location.reload();
-             return;
+             
+             // Zerar o estado local para atualizar a UI instantaneamente sem precisar de reload
+             setAttempts({});
+             setTotalPoints(0);
+             prevPointsRef.current = 0;
+             
+             console.log('Reset silencioso concluído. O usuário permanece no painel.');
           }
         }
 
@@ -85,8 +90,8 @@ export function useGameState() {
           const newAttempts = {};
           let newPoints = 0;
 
-          // Processar colunas d1 até d24
-          for (let i = 1; i <= 24; i++) {
+          // Processar colunas d1 até d20
+          for (let i = 1; i <= 20; i++) {
             const status = myTeam[`d${i}`];
             if (status) {
               let points = 0;

@@ -37,6 +37,10 @@ function doGet(e) {
         else if (h.indexOf('enunciado') > -1 || h.indexOf('pergunta') > -1) gabMap.enunciado = idx;
         else if (h.indexOf('imagem') > -1 || h.indexOf('img') > -1) gabMap.imagem = idx;
         else if (h.indexOf('resposta') > -1 || h.indexOf('gabarito') > -1 || h === 'c') gabMap.resposta = idx;
+        else if (h.indexOf('item a') > -1 || h === 'a') gabMap.itemA = idx;
+        else if (h.indexOf('item b') > -1 || h === 'b') gabMap.itemB = idx;
+        else if (h.indexOf('item c') > -1 || h === 'c') gabMap.itemC = idx;
+        else if (h.indexOf('item d') > -1 || h === 'd') gabMap.itemD = idx;
       });
 
       // Fallback para índices padrão se não encontrar headers (A=0, B=1, C=2...)
@@ -46,6 +50,12 @@ function doGet(e) {
       if (gabMap.enunciado === undefined) gabMap.enunciado = 3; // Ajuste conforme necessário
       if (gabMap.imagem === undefined) gabMap.imagem = 4;
       if (gabMap.resposta === undefined) gabMap.resposta = 2; // Coluna C é 2 (0-based)
+      
+      // Mapeamento automático para colunas F=5, G=6, H=7, I=8 se não encontradas
+      if (gabMap.itemA === undefined) gabMap.itemA = 5;
+      if (gabMap.itemB === undefined) gabMap.itemB = 6;
+      if (gabMap.itemC === undefined) gabMap.itemC = 7;
+      if (gabMap.itemD === undefined) gabMap.itemD = 8;
 
       for (var i = 1; i < dataGab.length; i++) {
         var row = dataGab[i];
@@ -56,7 +66,11 @@ function doGet(e) {
         q.componente = row[gabMap.componente];
         q.enunciado = row[gabMap.enunciado];
         q.imagem = row[gabMap.imagem];
-        q.resposta = row[gabMap.resposta]; // Garante pegar da coluna mapeada
+        q.resposta = row[gabMap.resposta]; 
+        q.itemA = row[gabMap.itemA];
+        q.itemB = row[gabMap.itemB];
+        q.itemC = row[gabMap.itemC];
+        q.itemD = row[gabMap.itemD];
         
         // Debug: Logar se resposta estiver vazia
         if (q.resposta === undefined || q.resposta === "") {
@@ -98,8 +112,8 @@ function doGet(e) {
         // Tenta achar 'chave' ou 'codigo' ou coluna B (1)
         teamObj.chave = row[colMap['chave']] || row[colMap['codigo']] || row[colMap['id']] || row[1];
         
-        // Campos dinâmicos (d1 a d24)
-        for (var k = 1; k <= 24; k++) {
+        // Campos dinâmicos (d1 a d20)
+        for (var k = 1; k <= 20; k++) {
           var dKey = 'd' + k;
           if (colMap[dKey] !== undefined) {
             teamObj[dKey] = row[colMap[dKey]];

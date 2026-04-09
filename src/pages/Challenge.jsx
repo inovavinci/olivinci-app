@@ -112,7 +112,7 @@ export default function Challenge() {
               </div>
             )}
 
-            <h2 className="text-2xl md:text-3xl font-black mb-8 text-primary leading-tight">
+            <h2 className="text-xl md:text-2xl font-bold mb-8 text-primary leading-tight whitespace-pre-line">
               {challenge.enunciado || challenge.question || "Carregando pergunta..."}
             </h2>
             
@@ -121,30 +121,42 @@ export default function Challenge() {
             {!attempt ? (
               <form onSubmit={handleSubmit} className="space-y-6 animate-fade-in-up">
                 
-                {/* Seletor de Múltipla Escolha */}
-                <div className="grid grid-cols-5 gap-2 sm:gap-4 mb-2">
-                  {['A', 'B', 'C', 'D', 'E'].map((option) => (
-                    <button
-                      key={option}
-                      type="button"
-                      onClick={() => {
-                        setAnswer(option);
-                        setError('');
-                      }}
-                      className={`
-                        aspect-square flex items-center justify-center rounded-xl font-black text-2xl transition-all duration-200
-                        min-w-[44px] min-h-[44px] shadow-sm
-                        ${answer === option 
-                          ? 'bg-accent-blue text-white border-4 border-accent-blue transform scale-110 shadow-xl z-10' 
-                          : 'bg-gray-50 text-primary border-2 border-gray-200 hover:border-accent-blue/50 hover:bg-blue-50 hover:-translate-y-1'
-                        }
-                      `}
-                      aria-label={`Selecionar alternativa ${option}`}
-                      aria-pressed={answer === option}
-                    >
-                      {option}
-                    </button>
-                  ))}
+                {/* Seletor de Múltipla Escolha - Formato de Linhas */}
+                <div className="flex flex-col gap-3 mb-2 text-left">
+                  {['A', 'B', 'C', 'D'].map((option) => {
+                    const itemKey = `item${option}`;
+                    const itemText = challenge[itemKey];
+                    
+                    return (
+                      <button
+                        key={option}
+                        type="button"
+                        onClick={() => {
+                          setAnswer(option);
+                          setError('');
+                        }}
+                        className={`
+                          flex items-center p-4 rounded-xl transition-all duration-200 border-2 shadow-sm
+                          ${answer === option 
+                            ? 'bg-accent-blue text-white border-accent-blue shadow-md transform scale-[1.02] z-10' 
+                            : 'bg-gray-50 text-primary border-gray-200 hover:border-accent-blue/50 hover:bg-blue-50'
+                          }
+                        `}
+                        aria-label={`Selecionar alternativa ${option}`}
+                        aria-pressed={answer === option}
+                      >
+                        <span className={`
+                          flex-shrink-0 w-10 h-10 flex items-center justify-center rounded-lg font-black text-xl mr-4
+                          ${answer === option ? 'bg-white text-accent-blue' : 'bg-primary/10 text-primary'}
+                        `}>
+                          {option}
+                        </span>
+                        <span className="font-semibold text-base leading-snug">
+                          {itemText || `Alternativa ${option}`}
+                        </span>
+                      </button>
+                    );
+                  })}
                 </div>
 
                 {error && <p className="text-accent-red text-sm font-bold animate-pulse">{error}</p>}

@@ -71,8 +71,8 @@ export function useLeaderboard() {
           let points = 0;
           let completed = 0;
           
-          // Iterar de 1 a 24
-          for (let i = 1; i <= 24; i++) {
+          // Iterar de 1 a 20
+          for (let i = 1; i <= 20; i++) {
             const status = team[`d${i}`];
             if (status) {
               if (status === 'CORRETO') points += 1;

@@ -14,7 +14,7 @@ export default function Dashboard() {
     }
   }, [navigate]);
 
-  const challenges = Array.from({ length: 24 }, (_, i) => i + 1);
+  const challenges = Array.from({ length: 20 }, (_, i) => i + 1);
 
   const getCardStatus = (id) => {
     const attempt = attempts[id];

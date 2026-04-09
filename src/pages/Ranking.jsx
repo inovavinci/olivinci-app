@@ -31,8 +31,8 @@ export default function Ranking() {
         const name = team['Equipe'] || team['equipe'] || team['Nome'] || 'Desconhecido';
         let points = 0;
         
-        // Iterar colunas d1 a d24
-        for (let i = 1; i <= 24; i++) {
+        // Iterar colunas d1 a d20
+        for (let i = 1; i <= 20; i++) {
           const status = team[`d${i}`];
           if (status === 'CORRETO') points += 1;
           else if (status === 'ERRADO') points -= 3;

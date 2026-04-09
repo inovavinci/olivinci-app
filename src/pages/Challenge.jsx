@@ -112,7 +112,8 @@ export default function Challenge() {
               </div>
             )}
 
-            <h2 className="text-xl md:text-2xl font-bold mb-8 text-primary leading-tight whitespace-pre-line">
+            {/* CONFIGURAÇÃO DO ENUNCIADO: Altere as classes abaixo para mudar o estilo do texto da pergunta */}
+            <h2 className="text-lg md:text-xl font-semibold mb-8 text-primary text-left leading-tight whitespace-pre-line">
               {challenge.enunciado || challenge.question || "Carregando pergunta..."}
             </h2>
             

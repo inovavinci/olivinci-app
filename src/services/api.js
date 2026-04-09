@@ -1,4 +1,4 @@
-const API_URL = 'https://script.google.com/macros/s/AKfycbwgRlaY8_K4RNygAUuvFuNbm6u8D9infAoUD8vFbgmP-dgDuYGWxLRnmXSRqOUXhSSZ5g/exec';
+const API_URL = 'https://script.google.com/macros/s/AKfycbzYzig2X8DtGybneUcrf4Sw6jg-XCszXB1MuIqlbHwcRekNOdBvGmfEIMYPo3mkBSOzDg/exec';
 
 export const api = {
   // Buscar dados (questões e equipes) com filtros de unidade e série
@@ -8,19 +8,19 @@ export const api = {
       const timestamp = Date.now();
       const url = `${API_URL}?unidade=${encodeURIComponent(unidade)}&serie=${encodeURIComponent(serie)}&t=${timestamp}`;
       console.log('API: Buscando dados em:', url);
-      
+
       const response = await fetch(url, { redirect: 'follow' });
-      
+
       if (!response.ok) {
         console.error(`API Error: Status ${response.status}`);
         const text = await response.text();
         console.error('API Error Response:', text);
         throw new Error('Erro ao buscar dados');
       }
-      
+
       const data = await response.json();
       console.log('API: Dados recebidos com sucesso:', data);
-      
+
       // Validação básica da estrutura
       if (!data.equipes && !data.questoes) {
         console.warn('API: Estrutura de resposta inesperada (faltam chaves equipes/questoes)', data);
@@ -30,11 +30,11 @@ export const api = {
           return { questoes: [], equipes: data };
         }
       }
-      
+
       return data;
     } catch (error) {
       console.error('API Error (getData):', error);
-      throw error; 
+      throw error;
     }
   },
 
@@ -51,7 +51,7 @@ export const api = {
           method: 'POST',
           redirect: 'follow',
           headers: {
-            'Content-Type': 'text/plain;charset=utf-8', 
+            'Content-Type': 'text/plain;charset=utf-8',
           },
           body: JSON.stringify(data)
         });
@@ -61,7 +61,7 @@ export const api = {
           console.error('API Error Response:', text);
           throw new Error(`Erro ao enviar resposta: ${response.status}`);
         }
-        
+
         const contentType = response.headers.get("content-type");
         if (contentType && contentType.indexOf("application/json") !== -1) {
           const result = await response.json();
@@ -78,18 +78,18 @@ export const api = {
         }
       } catch (primaryError) {
         console.warn('API: Falha na requisição primária, tentando fallback no-cors...', primaryError);
-        
+
         // Fallback: Tenta enviar com no-cors se a primeira falhar (ex: erro de rede/CORS estrito)
         await fetch(API_URL, {
           method: 'POST',
           mode: 'no-cors', // Importante: não retorna resposta legível
           redirect: 'follow',
           headers: {
-            'Content-Type': 'text/plain;charset=utf-8', 
+            'Content-Type': 'text/plain;charset=utf-8',
           },
           body: JSON.stringify(data)
         });
-        
+
         console.log('API: Requisição enviada via fallback no-cors (resposta opaca).');
         return { status: 'success', message: 'Enviado via fallback' };
       }
@@ -107,7 +107,7 @@ export const api = {
       serie,
       password
     };
-    
+
     return api.submitChallenge(payload);
   }
 };

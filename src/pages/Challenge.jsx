@@ -136,7 +136,7 @@ export default function Challenge() {
 
             {getStatusDisplay()}
 
-            {!attempt ? (
+            {!attempt && (
               <form onSubmit={handleSubmit} className="space-y-6 animate-fade-in-up">
 
                 {/* Seletor de Múltipla Escolha - Formato de Linhas */}
@@ -198,20 +198,23 @@ export default function Challenge() {
                   </button>
                 </div>
               </form>
-            ) : (
-              <div className="space-y-4">
-                <div className="bg-gray-50 p-4 rounded-xl border-2 border-gray-200 mb-6">
-                  <span className="text-sm font-bold text-gray-500 uppercase block mb-1">Sua Resposta</span>
-                  <span className="text-3xl font-black text-primary">{attempt.userAnswer || 'Respondido'}</span>
-                </div>
-                <button
-                  onClick={() => navigate('/dashboard')}
-                  className="w-full bg-primary hover:bg-primary-light text-white font-bold py-4 px-8 rounded-xl shadow-lg transition-all duration-200 uppercase tracking-widest"
-                >
-                  Voltar para Dashboard
-                </button>
+            )}
+
+            {attempt && (
+              <div className="bg-gray-50 p-4 rounded-xl border-2 border-gray-200 mb-6 animate-fade-in">
+                <span className="text-sm font-bold text-gray-500 uppercase block mb-1">Sua Resposta</span>
+                <span className="text-3xl font-black text-primary">{attempt.userAnswer || 'Respondido'}</span>
               </div>
             )}
+
+            <div className="mt-6 pt-6 border-t border-gray-100">
+              <button
+                onClick={() => navigate('/dashboard')}
+                className="w-full bg-primary hover:bg-primary-light text-white font-bold py-4 px-8 rounded-xl shadow-lg transition-all duration-200 uppercase tracking-widest flex items-center justify-center gap-2"
+              >
+                Voltar para Dashboard
+              </button>
+            </div>
           </div>
         </div>
       </main>

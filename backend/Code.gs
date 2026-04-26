@@ -89,15 +89,16 @@ function doGet(e) {
 
         for (var i = 1; i < dataTeam.length; i++) {
           var row = dataTeam[i];
-          if (!row[0] && !row[1]) continue; 
-
+          if (!row[0]) continue; // Se a coluna A estiver vazia, não é uma turma válida
           var teamObj = {};
           teamObj.equipe = row[colMap['equipe']] || row[colMap['nome']] || row[0];
           teamObj.chave = row[colMap['chave']] || row[colMap['codigo']] || row[colMap['id']] || row[1];
           
-          for (var k = 1; k <= 20; k++) {
+          for (var k = 1; k <= 30; k++) { // Aumentado para 30 por segurança
             var dKey = 'd' + k;
-            if (colMap[dKey] !== undefined) teamObj[dKey] = row[colMap[dKey]];
+            if (colMap[dKey] !== undefined) {
+              teamObj[dKey] = String(row[colMap[dKey]]).trim().toUpperCase();
+            }
           }
           equipes.push(teamObj);
         }
@@ -125,6 +126,7 @@ function doGet(e) {
       status: "success",
       questoes: questoes,
       equipes: equipes,
+      headers: headersTeam, // Adicionado para debug
       lastReset: parseInt(lastReset),
       timerDuration: timerDuration
     });

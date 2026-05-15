@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { CheckCircle, XCircle } from 'lucide-react';
-import { useGameState } from '../hooks/useGameState';
+import { useGameState } from '../hooks/GameStateContext';
 import Header from '../components/Header';
 
 export default function Challenge() {
@@ -12,12 +12,8 @@ export default function Challenge() {
   const [error, setError] = useState('');
 
   const challengeId = Number(id);
-
-  // Buscar questão dinâmica do estado
-  // Supondo que questoes é array de objetos { numero, componente, enunciado, imagem, resposta }
-  const challenge = questoes.find(q => q.numero == challengeId || q.id == challengeId) || questoes[challengeId - 1];
-
-  const attempt = attempts[challengeId];
+  const challenge = questoes.find(q => q.order_index == challengeId);
+  const attempt = challenge ? attempts[challenge.id] : null;
 
   useEffect(() => {
     if (!localStorage.getItem('teamName')) {
@@ -49,7 +45,7 @@ export default function Challenge() {
       setError('Por favor, digite uma resposta.');
       return;
     }
-    submitAnswer(challengeId, answer);
+    submitAnswer(challenge.id, answer);
   };
 
   const getStatusDisplay = () => {
@@ -73,7 +69,7 @@ export default function Challenge() {
               <XCircle size={48} className="mb-2" />
               <h3 className="text-2xl font-black uppercase">Resposta Incorreta</h3>
             </div>
-            <p className="text-accent-red font-bold text-lg">-3 Pontos</p>
+            <p className="text-accent-red font-bold text-lg">-2 Pontos</p>
           </div>
         );
       default:
@@ -83,15 +79,7 @@ export default function Challenge() {
 
   return (
     <div className="min-h-screen bg-white text-primary flex flex-col">
-      <Header 
-        teamName={teamName} 
-        points={totalPoints} 
-        completedCount={completedCount} 
-        showBack={true} 
-        timeLeft={timeLeft}
-        formatTime={formatTime}
-        isTimeUp={isTimeUp}
-      />
+      <Header showBack={true} />
 
       <main className="flex-1 container mx-auto px-4 py-8 flex flex-col items-center justify-center">
         <div className="bg-white p-8 md:p-12 rounded-3xl shadow-xl border border-primary/10 max-w-2xl w-full text-center relative overflow-hidden">
@@ -114,7 +102,7 @@ export default function Challenge() {
             {!attempt && (
               <div className="flex justify-center space-x-4 mb-8 text-xs font-bold uppercase tracking-wider">
                 <span className="bg-accent-green/10 text-accent-green px-3 py-1 rounded-full border border-accent-green/30">Acerto: +1</span>
-                <span className="bg-accent-red/10 text-accent-red px-3 py-1 rounded-full border border-accent-red/30">Erro: -3</span>
+                <span className="bg-accent-red/10 text-accent-red px-3 py-1 rounded-full border border-accent-red/30">Erro: -2</span>
               </div>
             )}
 
@@ -130,23 +118,21 @@ export default function Challenge() {
             )}
 
             {/* CONFIGURAÇÃO DO ENUNCIADO: Altere as classes abaixo para mudar o estilo do texto da pergunta */}
-            <h2 className="text-lg md:text-lg font-light mb-8 text-primary text-left leading-tight whitespace-pre-line">
-              {challenge.enunciado || challenge.question || "Carregando pergunta..."}
-            </h2>
+            <div 
+              className="rich-text-content text-lg md:text-lg font-light mb-8 text-primary text-left leading-tight"
+              dangerouslySetInnerHTML={{ __html: (challenge.enunciado || challenge.question || "Carregando pergunta...").replace(/\n/g, '<br/>') }}
+            />
 
             {getStatusDisplay()}
 
             {!attempt && (
               <form onSubmit={handleSubmit} className="space-y-6 animate-fade-in-up">
-
                 {/* Seletor de Múltipla Escolha - Formato de Linhas */}
                 <div className="flex flex-col gap-3 mb-2 text-left">
-                  {['A', 'B', 'C', 'D', 'E'].filter(option => {
-                    if (option === 'E') return !!challenge.itemE;
-                    return true;
-                  }).map((option) => {
-                    const itemKey = `item${option}`;
-                    const itemText = challenge[itemKey];
+                  {['A', 'B', 'C', 'D', 'E'].map((option) => {
+                    const itemText = challenge.options?.[option];
+                    
+                    if (option === 'E' && !itemText) return null;
 
                     return (
                       <button
@@ -172,9 +158,10 @@ export default function Challenge() {
                         `}>
                           {option}
                         </span>
-                        <span className="font-light text-base text-left leading-snug">
-                          {itemText || `Alternativa ${option}`}
-                        </span>
+                        <span 
+                          className="font-light text-base text-left leading-snug rich-text-content"
+                          dangerouslySetInnerHTML={{ __html: itemText || `Alternativa ${option}` }}
+                        />
                       </button>
                     );
                   })}

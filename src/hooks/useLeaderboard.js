@@ -1,121 +1,91 @@
-// src/hooks/useLeaderboard.js
 import { useState, useEffect } from 'react';
-import { api } from '../services/api';
+import { supabase } from '../lib/supabase';
 
 export function useLeaderboard() {
   const [leaderboard, setLeaderboard] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Carregar cache inicial
-    const cachedLeaderboard = localStorage.getItem('leaderboard');
-    if (cachedLeaderboard) {
-      try {
-        setLeaderboard(JSON.parse(cachedLeaderboard));
-        setIsLoading(false);
-      } catch (e) {
-        console.error('Erro ao ler cache do Leaderboard:', e);
-      }
-    }
-
     const fetchLeaderboard = async () => {
-      // Ler unidade, série e nome da equipe do localStorage
-      const storedUnidade = localStorage.getItem('unidade');
-      const storedSerie = localStorage.getItem('serie');
-      const storedTeam = localStorage.getItem('teamName');
+      const periodId = localStorage.getItem('periodId');
+      const unitId = localStorage.getItem('unitId');
+      const gradeId = localStorage.getItem('gradeId');
 
-      if (!storedUnidade || !storedSerie) {
+      if (!periodId || !unitId || !gradeId) {
         setIsLoading(false);
         return;
       }
 
       try {
-        // Agora usamos getData que suporta filtros e retorna { questoes: [], equipes: [] }
-        const data = await api.getData(storedUnidade, storedSerie);
-        
-        // Extrair equipes do objeto retornado
-        const teams = data.equipes || [];
-        
-        if (teams.length === 0) {
+        // 1. Buscar todas as turmas que competem juntas (mesmo período, unidade e série)
+        const { data: classes, error: classError } = await supabase
+          .from('classes')
+          .select('id, name')
+          .eq('period_id', periodId)
+          .eq('unit_id', unitId)
+          .eq('grade_id', gradeId);
+
+        if (classError) throw classError;
+        if (!classes || classes.length === 0) {
+          setLeaderboard([]);
           setIsLoading(false);
           return;
         }
 
-        // Tentar ler estado local da equipe atual para merge (sincronização instantânea)
-        let localTeamData = null;
-        if (storedTeam) {
-          try {
-            const cachedGameState = localStorage.getItem(`gameState_${storedTeam}`);
-            if (cachedGameState) {
-              localTeamData = JSON.parse(cachedGameState);
-            }
-          } catch (e) { console.error('Erro ao ler gameState local:', e); }
+        const classIds = classes.map(c => c.id);
+
+        // 2. Buscar as equipes dessas turmas
+        const { data: teams, error: teamError } = await supabase
+          .from('teams')
+          .select('id, name, class_id')
+          .in('class_id', classIds);
+
+        if (teamError) throw teamError;
+        if (!teams || teams.length === 0) {
+          setLeaderboard([]);
+          setIsLoading(false);
+          return;
         }
 
-        // Calcular pontos para cada equipe
-        const teamsWithPoints = teams.map(team => {
-          // Normalizar nome da equipe
-          const name = team['Equipe'] || team['equipe'] || team['Nome'] || 'Desconhecido';
-          
-          // Se for a equipe atual e tivermos dados locais, usar a pontuação local (otimista)
-          if (localTeamData && name === storedTeam && localTeamData.totalPoints !== undefined) {
-             return {
-               name,
-               points: localTeamData.totalPoints,
-               completed: Object.keys(localTeamData.attempts || {}).length, // Aproximação
-               isLocal: true // Flag de debug
-             };
-          }
+        const teamIds = teams.map(t => t.id);
 
-          // Caso contrário, calcular baseado na planilha
-          let points = 0;
-          let completed = 0;
-          
-          // Iterar de 1 a 20
-          for (let i = 1; i <= 20; i++) {
-            const status = team[`d${i}`];
-            if (status) {
-              if (status === 'CORRETO') points += 1;
-              else if (status === 'ERRADO') points -= 3;
-              // 'BRANCO' ou 'PULADO' = 0 pontos
-              
-              if (status !== '') completed++;
-            }
-          }
+        // 3. Buscar a soma de pontos de cada equipe diretamente
+        const { data: answers, error: answerError } = await supabase
+          .from('answers')
+          .select('team_id, points')
+          .in('team_id', teamIds);
+
+        if (answerError) throw answerError;
+
+        // 4. Calcular o placar consolidado
+        const scores = teams.map(team => {
+          const teamPoints = answers
+            .filter(a => a.team_id === team.id)
+            .reduce((acc, curr) => acc + (curr.points || 0), 0);
           
           return {
-            name,
-            points,
-            completed
+            id: team.id,
+            name: team.name,
+            points: teamPoints
           };
         });
 
-        // Ordenar por pontos (decrescente)
-        const sortedTeams = teamsWithPoints.sort((a, b) => b.points - a.points);
+        // 5. Ordenar por pontos (descendente)
+        const sorted = scores.sort((a, b) => b.points - a.points);
         
-        // Atualizar estado e cache apenas se mudou
-        // Usar JSON.stringify pode ser caro, mas para listas pequenas (<100) é ok
-        if (JSON.stringify(sortedTeams) !== JSON.stringify(leaderboard)) {
-          console.log('Leaderboard atualizado (com merge local):', sortedTeams);
-          setLeaderboard(sortedTeams);
-          localStorage.setItem('leaderboard', JSON.stringify(sortedTeams));
-        }
-        
+        setLeaderboard(sorted);
         setIsLoading(false);
-      } catch (error) {
-        console.error('Erro ao buscar leaderboard:', error);
+      } catch (err) {
+        console.error('Erro ao buscar ranking:', err);
+        setIsLoading(false);
       }
     };
 
-    // Primeira chamada (stale-while-revalidate)
     fetchLeaderboard();
-    
-    // Polling a cada 5s para refletir mudanças locais mais rápido se o usuário interagir
-    // Idealmente seria ouvir evento 'storage', mas polling mais curto também resolve o "quase tempo real"
-    const interval = setInterval(fetchLeaderboard, 5000); 
-
+    // Atualiza a cada 15 segundos para não sobrecarregar o banco mas manter o "tempo real"
+    const interval = setInterval(fetchLeaderboard, 15000);
     return () => clearInterval(interval);
-  }, []); // Dependência vazia ok pois unidade/serie vem do localStorage
+  }, []);
 
   return { leaderboard, isLoading };
 }

@@ -2,13 +2,18 @@ import React, { useEffect, useState, useRef } from 'react';
 import { ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import Leaderboard from './Leaderboard';
+import { useGameState } from '../hooks/GameStateContext';
 
-export default function Header({ teamName, points, completedCount, showBack = false, timeLeft, formatTime, isTimeUp }) {
+export default function Header({ showBack = false }) {
   const navigate = useNavigate();
+  const { teamName, totalPoints: points, completedCount, timeLeft, formatTime, isTimeUp, questoes } = useGameState();
+  
   const [pointsClass, setPointsClass] = useState('');
   const prevPointsRef = useRef(points);
   const [clicks, setClicks] = useState(0);
   const clickTimeoutRef = useRef(null);
+
+  const totalQuestions = questoes.length || 20;
 
   const handleSecretClick = () => {
     setClicks(prev => {
@@ -78,12 +83,12 @@ export default function Header({ teamName, points, completedCount, showBack = fa
             `}>
               <span className="text-[10px] font-bold text-white/70 uppercase tracking-widest leading-none mb-1">Tempo</span>
               <span className="text-xl font-black text-white font-mono tracking-tighter tabular-nums leading-none">
-                {formatTime ? formatTime(timeLeft) : "--:--:--"}
+                {formatTime(timeLeft)}
               </span>
             </div>
 
             <span className="text-xs text-white/70 font-medium whitespace-nowrap hidden sm:inline">
-              ({completedCount}/20 concluídos)
+              ({completedCount}/{totalQuestions} concluídos)
             </span>
           </div>
         </div>

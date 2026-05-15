@@ -1,21 +1,22 @@
-# Logs
-logs
-*.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-lerna-debug.log*
-
-node_modules
-dist
-dist-ssr
+# Dependencies
+node_modules/
+dist/
+dist-ssr/
 *.local
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Utility scripts
+fix_database.js
+supabase/.temp/
 
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
-.idea
+.idea/
 .DS_Store
 *.suo
 *.ntvs*
@@ -23,4 +24,5 @@ dist-ssr
 *.sln
 *.sw?
 
+# Sensitive info
 SENHA ADMIN.txt

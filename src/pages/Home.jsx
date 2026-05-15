@@ -1,223 +1,241 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Trophy, Loader2, AlertCircle, Lock } from 'lucide-react';
+import { Trophy, Loader2, AlertCircle, Lock, ArrowRight, School, MapPin, GraduationCap, ArrowLeft } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { api } from '../services/api';
+import { useGameState } from '../hooks/GameStateContext';
 
 export default function Home() {
-  const [unidade, setUnidade] = useState('');
-  const [serie, setSerie] = useState('');
-  const [accessKey, setAccessKey] = useState('');
-
+  const [step, setStep] = useState('entry'); // 'entry' | 'confirm'
+  const [accessCode, setAccessCode] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
-  const [attempts, setAttempts] = useState(0);
-  const [isLocked, setIsLocked] = useState(false);
+  const [pendingData, setPendingData] = useState(null);
+  
   const navigate = useNavigate();
+  const { login } = useGameState();
 
-  const handleStart = async (e) => {
+  const handleVerifyCode = async (e) => {
     e.preventDefault();
+    if (!accessCode.trim()) return;
 
-    if (isLocked) return;
+    setIsLoading(true);
+    setError('');
 
-    if (unidade && serie && accessKey.trim()) {
-      setIsLoading(true);
-      setError('');
-
-      try {
-        // Busca dados filtrados por unidade e série
-        const data = await api.getData(unidade, serie);
-
-        console.log('Dados recebidos no Home:', data); // Debug log
-
-        // Verifica se a chave existe na lista de equipes
-        if (!data || !data.equipes) {
-          throw new Error('Formato de dados inválido recebido da API.');
-        }
-
-        // Log das chaves disponíveis para debug
-        const availableKeys = data.equipes.map(t => ({
-          key: t.chave || t.Chave || t.CHAVE || t.codigo || t.id,
-          team: t.equipe || t.Equipe || t.Nome
-        }));
-        console.log('Chaves disponíveis:', availableKeys);
-        console.log('Chave digitada:', accessKey);
-
-        const foundTeam = data.equipes.find(t => {
-          // Normalizar chave de entrada
-          const inputKey = String(accessKey).trim();
-
-          // Tentar encontrar a chave em várias propriedades possíveis
-          const teamKey = t.chave || t.Chave || t.CHAVE || t.codigo || t.Codigo || t.id || t.ID || '';
-
-          // Comparação flexível
-          return String(teamKey).trim() === inputKey;
-        });
-
-        if (foundTeam) {
-          // Sucesso
-          const teamName = foundTeam.equipe || foundTeam.Equipe || foundTeam.Nome || foundTeam.name || '';
-
-          if (!teamName) {
-            console.error('Equipe encontrada mas sem nome:', foundTeam);
-            setError('Erro: Equipe encontrada mas nome não identificado.');
-            setIsLoading(false);
-            return;
-          }
-
-          localStorage.setItem('unidade', unidade);
-          localStorage.setItem('serie', serie);
-          localStorage.setItem('teamName', teamName);
-          localStorage.setItem('accessKey', accessKey); // Salvar para usar no POST
-
-          navigate('/dashboard');
-        } else {
-          // Falha
-          console.warn('Chave não encontrada na lista.');
-          handleLoginError();
-        }
-      } catch (error) {
-        console.error(error);
-        setError('Erro ao conectar com o servidor. Verifique o console para detalhes.');
-      } finally {
+    try {
+      const classData = await api.getClassByCode(accessCode);
+      
+      if (!classData) {
+        setError('Código de acesso inválido ou expirado.');
         setIsLoading(false);
+        return;
       }
-    } else {
-      setError('Por favor, preencha todos os campos.');
+
+      const autoTeamName = `${classData.grades.name} ${classData.name}`;
+      const team = await api.getOrCreateTeam(classData.id, autoTeamName);
+      
+      setPendingData({
+        classData,
+        team,
+        accessCode: accessCode.toUpperCase()
+      });
+      
+      setStep('confirm');
+    } catch (err) {
+      console.error(err);
+      setError('Erro ao validar acesso. Verifique sua conexão.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const handleLoginError = () => {
-    const newAttempts = attempts + 1;
-    setAttempts(newAttempts);
+  const handleStartChallenge = async () => {
+    if (!pendingData) return;
+    
+    setIsLoading(true);
+    try {
+      // Iniciar o cronômetro no banco
+      await api.startTeamTimer(pendingData.team.id);
 
-    if (newAttempts >= 3) {
-      setIsLocked(true);
-      setError('Muitas tentativas inválidas. Aguarde 5 segundos.');
-      setTimeout(() => {
-        setIsLocked(false);
-        setAttempts(0);
-        setError('');
-      }, 5000);
-    } else {
-      setError('Chave de acesso inválida para esta Unidade/Série.');
+      // Login no contexto
+      login({
+        classId: pendingData.classData.id,
+        teamId: pendingData.team.id,
+        teamName: pendingData.team.name,
+        unidade: pendingData.classData.units.name,
+        unitId: pendingData.classData.unit_id,
+        serie: pendingData.classData.grades.name,
+        periodId: pendingData.classData.period_id,
+        gradeId: pendingData.classData.grade_id,
+        accessCode: pendingData.accessCode
+      });
+
+      navigate('/dashboard');
+    } catch (err) {
+      console.error(err);
+      setError('Erro ao iniciar desafio. Tente novamente.');
+      setIsLoading(false);
     }
   };
 
   return (
     <div className="min-h-screen bg-white flex items-center justify-center p-4">
       <div className="bg-primary p-8 rounded-3xl shadow-2xl max-w-md w-full text-center relative overflow-hidden">
-
+        
+        {/* Background Decorations */}
         <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-bl-full pointer-events-none"></div>
         <div className="absolute bottom-0 left-0 w-32 h-32 bg-white/10 rounded-tr-full pointer-events-none"></div>
 
         <div className="flex justify-center mb-6 relative z-10">
-          <div className="bg-white p-4 rounded-full shadow-lg animate-bounce">
+          <motion.div 
+            initial={{ scale: 0.5, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ type: "spring", stiffness: 260, damping: 20 }}
+            className="bg-white p-4 rounded-full shadow-lg"
+          >
             <Trophy size={48} className="text-accent-orange" />
-          </div>
+          </motion.div>
         </div>
 
         <h1 className="text-4xl font-black text-white mb-2 uppercase tracking-wider relative z-10">
           Olivinci
         </h1>
-        <p className="text-white/80 mb-8 font-medium relative z-10">Área de Acesso das Equipes</p>
+        <p className="text-white/80 mb-8 font-medium relative z-10">Desafio de Conhecimento</p>
 
-        <form onSubmit={handleStart} className="space-y-4 relative z-10">
-
-          {/* Seletor de Unidade */}
-          <div className="relative group">
-            <select
-              value={unidade}
-              onChange={(e) => setUnidade(e.target.value)}
-              className="w-full bg-white text-primary px-6 py-4 rounded-xl focus:outline-none border-2 border-transparent focus:border-accent-orange appearance-none font-bold text-lg text-center"
-              required
-              disabled={isLoading || isLocked}
+        <AnimatePresence mode="wait">
+          {step === 'entry' ? (
+            <motion.div
+              key="entry-step"
+              initial={{ x: -20, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              exit={{ x: 20, opacity: 0 }}
+              className="relative z-10"
             >
-              <option value="" disabled>Selecione a Unidade</option>
-              <option value="S">Sul (S)</option>
-              <option value="N">Norte (N)</option>
-              <option value="T">Taguatinga (T)</option>
-            </select>
-          </div>
+              <form onSubmit={handleVerifyCode} className="space-y-4">
+                <div className="relative group">
+                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                    <Lock className="text-primary/40" size={20} />
+                  </div>
+                  <input
+                    type="text"
+                    value={accessCode}
+                    onChange={(e) => {
+                      setAccessCode(e.target.value.toUpperCase());
+                      setError('');
+                    }}
+                    placeholder="Código da Turma"
+                    className={`w-full bg-white text-primary placeholder-primary/50 pl-12 pr-6 py-4 rounded-xl focus:outline-none transition-all duration-300 text-lg font-bold text-center border-2
+                      ${error ? 'border-accent-red' : 'border-transparent focus:border-accent-orange'}
+                    `}
+                    required
+                    disabled={isLoading}
+                  />
+                </div>
 
-          {/* Seletor de Série */}
-          <div className="relative group">
-            <select
-              value={serie}
-              onChange={(e) => setSerie(e.target.value)}
-              className="w-full bg-white text-primary px-6 py-4 rounded-xl focus:outline-none border-2 border-transparent focus:border-accent-orange appearance-none font-bold text-lg text-center"
-              required
-              disabled={isLoading || isLocked}
+                {error && (
+                  <motion.div 
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="flex items-center justify-center space-x-2 text-white bg-accent-red p-3 rounded-lg shadow-md text-sm font-bold"
+                  >
+                    <AlertCircle size={20} />
+                    <span>{error}</span>
+                  </motion.div>
+                )}
+
+                <button
+                  type="submit"
+                  disabled={isLoading || !accessCode}
+                  className={`w-full bg-accent-orange hover:bg-yellow-400 text-primary-dark font-black py-4 px-8 rounded-xl shadow-lg transform hover:scale-105 transition-all duration-200 text-xl uppercase tracking-widest flex items-center justify-center
+                    ${isLoading ? 'opacity-70 cursor-not-allowed transform-none' : ''}
+                  `}
+                >
+                  {isLoading ? <Loader2 className="animate-spin mr-2" /> : 'Entrar no Desafio'}
+                </button>
+              </form>
+            </motion.div>
+          ) : (
+            <motion.div
+              key="confirm-step"
+              initial={{ x: 20, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              exit={{ x: -20, opacity: 0 }}
+              className="relative z-10"
             >
-              <option value="" disabled>Selecione a Série</option>
-              <option value="1">1ª Série</option>
-              <option value="2">2ª Série</option>
-              <option value="3">3ª Série</option>
-            </select>
-          </div>
+              <div className="bg-white/10 rounded-2xl p-6 mb-6 text-left border border-white/20 space-y-4">
+                <div className="flex items-center space-x-4 text-white">
+                  <div className="bg-white/20 p-2 rounded-lg">
+                    <MapPin size={20} className="text-accent-orange" />
+                  </div>
+                  <div>
+                    <p className="text-[10px] uppercase font-bold text-white/50 tracking-widest">Unidade</p>
+                    <p className="text-lg font-bold">{pendingData?.classData?.units?.name}</p>
+                  </div>
+                </div>
 
-          {/* Input de Chave */}
-          <div className="relative group">
-            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-              <Lock className="text-primary/40" size={20} />
-            </div>
-            <input
-              type="text"
-              inputMode="numeric"
-              pattern="[0-9]*"
-              value={accessKey}
-              onChange={(e) => {
-                setAccessKey(e.target.value);
-                if (!isLocked) setError('');
-              }}
-              placeholder="Chave de Acesso"
-              className={`w-full bg-white text-primary placeholder-primary/50 pl-12 pr-6 py-4 rounded-xl focus:outline-none transition-all duration-300 text-lg font-bold text-center border-2
-                ${error
-                  ? 'border-accent-red focus:border-accent-red'
-                  : 'border-transparent focus:border-accent-orange'}
-                ${isLocked ? 'opacity-50 cursor-not-allowed' : ''}
-              `}
-              required
-              disabled={isLoading || isLocked}
-            />
-          </div>
+                <div className="flex items-center space-x-4 text-white">
+                  <div className="bg-white/20 p-2 rounded-lg">
+                    <GraduationCap size={20} className="text-accent-orange" />
+                  </div>
+                  <div>
+                    <p className="text-[10px] uppercase font-bold text-white/50 tracking-widest">Série / Ano</p>
+                    <p className="text-lg font-bold">{pendingData?.classData?.grades?.name}</p>
+                  </div>
+                </div>
 
-          {error && (
-            <div className="flex items-center justify-center space-x-2 text-white bg-accent-red p-3 rounded-lg animate-fade-in shadow-md text-sm font-bold">
-              <AlertCircle size={20} />
-              <span>{error}</span>
-            </div>
+                <div className="flex items-center space-x-4 text-white">
+                  <div className="bg-white/20 p-2 rounded-lg">
+                    <School size={20} className="text-accent-orange" />
+                  </div>
+                  <div>
+                    <p className="text-[10px] uppercase font-bold text-white/50 tracking-widest">Turma</p>
+                    <p className="text-lg font-bold">{pendingData?.classData?.name}</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex flex-col space-y-3">
+                <button
+                  onClick={handleStartChallenge}
+                  disabled={isLoading}
+                  className="w-full bg-accent-green hover:bg-green-400 text-white font-black py-4 px-8 rounded-xl shadow-lg transform hover:scale-105 transition-all duration-200 text-xl uppercase tracking-widest flex items-center justify-center group"
+                >
+                  {isLoading ? <Loader2 className="animate-spin mr-2" /> : (
+                    <>
+                      Iniciar Desafio
+                      <ArrowRight className="ml-2 group-hover:translate-x-1 transition-transform" />
+                    </>
+                  )}
+                </button>
+
+                <button
+                  onClick={() => setStep('entry')}
+                  disabled={isLoading}
+                  className="w-full text-white/60 hover:text-white transition-colors text-xs uppercase font-bold flex items-center justify-center py-2"
+                >
+                  <ArrowLeft size={14} className="mr-1" /> Voltar e alterar código
+                </button>
+              </div>
+            </motion.div>
           )}
+        </AnimatePresence>
 
-          <button
-            type="submit"
-            disabled={isLoading || isLocked}
-            className={`w-full bg-accent-orange hover:bg-yellow-400 text-primary-dark font-black py-4 px-8 rounded-xl shadow-lg transform hover:scale-105 transition-all duration-200 text-xl uppercase tracking-widest flex items-center justify-center
-              ${(isLoading || isLocked) ? 'opacity-70 cursor-not-allowed transform-none' : ''}
-            `}
-          >
-            {isLoading ? <Loader2 className="animate-spin mr-2" /> : 'Acessar Painel'}
-          </button>
-
-          <div className="pt-4 border-t border-white/20">
+        {step === 'entry' && (
+          <div className="mt-8 relative z-10 text-center">
             <button
-              type="button"
               onClick={() => navigate('/ranking')}
-              className="w-full bg-white/10 hover:bg-white/20 text-white font-black py-3 px-6 rounded-xl border-2 border-white/30 transition-all duration-200 text-lg uppercase tracking-widest flex items-center justify-center group"
+              className="text-white/40 text-xs hover:text-white/60 transition-colors uppercase tracking-widest font-bold flex items-center justify-center mx-auto"
             >
-              <Trophy className="mr-2 text-yellow-400 group-hover:scale-110 transition-transform" size={20} />
-              Ver Ranking Oficial
+              <Trophy size={14} className="mr-1" /> Ver Ranking Oficial
+            </button>
+            <button
+              onClick={() => navigate('/admin')}
+              className="mt-4 text-white/20 text-[10px] hover:text-white/40 transition-colors uppercase tracking-widest font-bold block mx-auto"
+            >
+              Acesso Administrativo
             </button>
           </div>
-        </form>
-
-        <div className="mt-8 relative z-10 text-center">
-          <button
-            onClick={() => navigate('/admin')}
-            className="text-white/30 text-xs hover:text-white/60 transition-colors uppercase tracking-widest font-bold"
-          >
-            Acesso Administrativo
-          </button>
-        </div>
+        )}
       </div>
     </div>
   );

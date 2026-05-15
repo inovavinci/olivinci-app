@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { CheckCircle, XCircle } from 'lucide-react';
-import { useGameState } from '../hooks/useGameState';
+import { useGameState } from '../hooks/GameStateContext';
 import Header from '../components/Header';
 
 export default function Dashboard() {
@@ -14,10 +14,14 @@ export default function Dashboard() {
     }
   }, [navigate]);
 
-  const challenges = Array.from({ length: 20 }, (_, i) => i + 1);
+  // Usar a quantidade real de questões ou 20 como fallback
+  const challengesCount = questoes.length > 0 ? questoes.length : 20;
+  const challenges = Array.from({ length: challengesCount }, (_, i) => i + 1);
 
-  const getCardStatus = (id) => {
-    const attempt = attempts[id];
+  const getCardStatus = (question) => {
+    if (!question) return { color: 'bg-white', border: 'border-2 border-primary/20', icon: null, text: 'text-primary/30', hover: 'hover:border-accent-orange hover:shadow-lg hover:-translate-y-1', disabled: false };
+    
+    const attempt = attempts[question.id];
     if (!attempt) return { 
       color: 'bg-white', 
       border: 'border-2 border-primary/20', 
@@ -27,7 +31,6 @@ export default function Dashboard() {
       disabled: false
     };
     
-    // Se já respondeu, retorna o status e bloqueia (disabled: true é lógico, o link é removido abaixo)
     switch (attempt.status) {
       case 'correct':
         return { 
@@ -48,27 +51,13 @@ export default function Dashboard() {
           disabled: true
         };
       default:
-        return { 
-          color: 'bg-white', 
-          border: 'border-2 border-primary/20', 
-          icon: null, 
-          text: 'text-primary/30', 
-          hover: 'hover:border-accent-orange hover:shadow-lg hover:-translate-y-1',
-          disabled: false
-        };
+        return { color: 'bg-white', border: 'border-2 border-primary/20', icon: null, text: 'text-primary/30', hover: 'hover:border-accent-orange hover:shadow-lg hover:-translate-y-1', disabled: false };
     }
   };
 
   return (
     <div className="min-h-screen bg-white text-primary flex flex-col">
-      <Header 
-        teamName={teamName} 
-        points={totalPoints} 
-        completedCount={completedCount} 
-        timeLeft={timeLeft}
-        formatTime={formatTime}
-        isTimeUp={isTimeUp}
-      />
+      <Header />
 
       <main className="container mx-auto px-4 py-8 flex-1">
         <h2 className="text-3xl font-black text-primary mb-8 text-center uppercase tracking-widest">
@@ -76,15 +65,12 @@ export default function Dashboard() {
         </h2>
         
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-6">
-          {challenges.map((id) => {
-            const status = getCardStatus(id);
-            const isCompleted = !!attempts[id];
+          {challenges.map((orderIndex) => {
+            const question = questoes.find(q => q.order_index === orderIndex);
+            const status = getCardStatus(question);
+            const isCompleted = question ? !!attempts[question.id] : false;
+            const disciplina = question ? (question.componente || '') : '';
             
-            // Encontrar disciplina correspondente
-            const question = questoes.find(q => q.numero == id || q.id == id) || questoes[id - 1];
-            const disciplina = question ? (question.componente || question.disciplina || '') : '';
-            
-            // Se estiver completado, renderiza div em vez de Link para bloquear clique
             const CardContent = (
               <div className={`
                   group relative aspect-square flex flex-col items-center justify-center 
@@ -95,10 +81,9 @@ export default function Dashboard() {
                   text-5xl font-black transition-colors duration-300
                   ${status.text} ${!isCompleted && 'group-hover:text-accent-orange'}
                 `}>
-                  {id}
+                  {orderIndex}
                 </span>
 
-                {/* Exibir Disciplina */}
                  {disciplina && (
                     <span className={`
                       absolute top-2 left-3 right-8 text-left text-[10px] font-bold uppercase tracking-wider truncate
@@ -114,13 +99,13 @@ export default function Dashboard() {
                   </div>
                 )}
 
-                {attempts[id] && (
+                {isCompleted && question && attempts[question.id] && (
                    <div className="absolute bottom-2 font-bold text-sm text-white/90">
-                     {attempts[id].points > 0 ? '+' : ''}{attempts[id].points} pts
+                     {attempts[question.id].points > 0 ? '+' : ''}{attempts[question.id].points} pts
                    </div>
                 )}
                 
-                {!isCompleted && (
+                {!isCompleted && !isTimeUp && (
                   <div className="absolute inset-0 rounded-2xl flex items-end justify-center pb-6 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                     <span className="text-xs font-bold text-accent-orange uppercase tracking-widest bg-white px-2 py-1 rounded-full shadow-sm border border-accent-orange/20">
                       Iniciar
@@ -131,9 +116,9 @@ export default function Dashboard() {
             );
 
             return (isCompleted || isTimeUp) ? (
-              <div key={id} className="cursor-default">{CardContent}</div>
+              <div key={orderIndex} className="cursor-default">{CardContent}</div>
             ) : (
-              <Link key={id} to={`/desafio/${id}`}>
+              <Link key={orderIndex} to={`/desafio/${orderIndex}`}>
                 {CardContent}
               </Link>
             );
